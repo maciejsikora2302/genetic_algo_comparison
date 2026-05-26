@@ -248,7 +248,8 @@ class EvolutionaryEngine:
             sigma_var = population.get_sigma_variance()
 
             # Execution logging (matches deliverables)
-            if gen % 20 == 0 or gen == 1 or gen == self.generations:
+            log_interval = max(20, self.generations // 10)
+            if gen % log_interval == 0 or gen == 1 or gen == self.generations:
                 print(f"[EP Gen {gen}] Best Fitness: {gen_best.fitness:.6f} | Mean Fitness: {mean_fit:.6f} | Sigma Variance: {sigma_var:.6f}")
 
             # Check and record improvement
@@ -257,7 +258,8 @@ class EvolutionaryEngine:
                 best_tour = list(gen_best.route)
 
             # Log progress periodically
-            if on_generation_callback is not None and (gen % 10 == 0 or gen == self.generations):
+            callback_interval = max(10, self.generations // 20)
+            if on_generation_callback is not None and (gen % callback_interval == 0 or gen == self.generations):
                 on_generation_callback(gen, best_dist, best_tour)
 
         # Ensure final state is correctly updated

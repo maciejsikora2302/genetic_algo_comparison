@@ -46,7 +46,9 @@ class Comparator:
                 continue
                 
             print(f"Executing {algo.name}...")
-            best_route = algo.run(test_case, timeout=5.0)
+            # Allow evolutionary algorithms to run for at least 10 seconds, others for 5.0 seconds
+            run_timeout = 10.0 if "Genetic" in algo.name or "Evolutionary" in algo.name else 5.0
+            best_route = algo.run(test_case, timeout=run_timeout)
             summary = algo.get_summary()
             
             self.results[algo.name] = {
