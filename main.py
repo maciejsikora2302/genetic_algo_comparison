@@ -46,6 +46,23 @@ def run_test_case_benchmark(test_case: TestCase, comparator: Comparator, seed: i
     print(f"\nSaved charts for '{test_case.name}':\n - {time_chart}\n - {convergence_chart}\n - {ranking_chart}")
 
     # 4. Generate Routes and Animations for successfully run solvers
+    
+    # Delete any existing best_route_*.png files in case_dir to ensure only the overall winner is present
+    import glob
+    for f in glob.glob(os.path.join(case_dir, "best_route_*.png")):
+        try:
+            os.remove(f)
+        except Exception:
+            pass
+
+    # Find the winning algorithm (absolute shortest route distance)
+    winning_algo = None
+    winning_distance = float('inf')
+    for algo_name, data in comparator.results.items():
+        if data["best_distance"] < winning_distance:
+            winning_distance = data["best_distance"]
+            winning_algo = algo_name
+
     for algo_name, data in comparator.results.items():
         best_route = data["best_route"]
         algo_filename = algo_name.replace(' ', '_').replace('(', '').replace(')', '').replace('-', '_').lower()
@@ -53,6 +70,12 @@ def run_test_case_benchmark(test_case: TestCase, comparator: Comparator, seed: i
         # Save final route plot
         route_img_path = os.path.join(final_routes_dir, f"{algo_filename}.png")
         Visualize.plot_route(test_case, best_route, f"Final Route - {algo_name}", save_path=route_img_path)
+        
+        # Save final route plot directly in the main benchmark folder ONLY for the overall winning algorithm
+        if algo_name == winning_algo:
+            main_route_img_path = os.path.join(case_dir, f"best_route_{algo_filename}.png")
+            Visualize.plot_route(test_case, best_route, f"Final Route - {algo_name} (Overall Winner)", save_path=main_route_img_path)
+            print(f"Overall Winner for '{test_case.name}': {algo_name} (Distance: {winning_distance:.2f}) -> Saved as {main_route_img_path}")
         
         # Build frame PNG sequence and compile animated GIFs at 5 different speeds
         algo_prog_dir = os.path.join(progressions_base_dir, algo_filename)
@@ -74,6 +97,7 @@ def main():
     parser.add_argument("-m", "--medium-only", action="store_true", help="Run only the Medium 15-City Benchmark for fast iterations")
     parser.add_argument("-l", "--large-only", action="store_true", help="Run only the Large 30-City Benchmark")
     parser.add_argument("-g", "--huge-only", action="store_true", help="Run only the Huge 50-City Benchmark")
+    parser.add_argument("-c", "--clustered-only", action="store_true", help="Run only the Clustered 18-City Benchmark")
     args = parser.parse_args()
 
     seed = 42
@@ -94,14 +118,26 @@ def main():
             TestCase.generate_random("Huge 50-City Benchmark", num_cities=50, seed=seed)
         ]
         print("Huge Scale Mode: Running ONLY the Huge 50-City Benchmark.")
+    elif args.clustered_only:
+        test_cases = [
+            TestCase.generate_clustered("Clustered Medium 18-City Benchmark", num_cities=18, num_clusters=3, cluster_radius=5.0, seed=seed),
+            TestCase.generate_clustered("Clustered Large 30-City Benchmark", num_cities=30, num_clusters=5, cluster_radius=5.0, seed=seed),
+            TestCase.generate_clustered("Clustered Huge 50-City Benchmark", num_cities=50, num_clusters=7, cluster_radius=7.0, seed=seed)
+        ]
+        print("Clustered Scale Mode: Running ONLY the Clustered 18, 30, and 50-City Benchmarks.")
     else:
         test_cases = [
             TestCase.generate_random("Small 8-City Benchmark", num_cities=8, seed=seed),
             TestCase.generate_random("Standard 10-City Benchmark", num_cities=10, seed=seed),
             TestCase.generate_random("Medium 15-City Benchmark", num_cities=15, seed=seed),
+            TestCase.generate_clustered("Clustered Medium 18-City Benchmark", num_cities=18, num_clusters=3, cluster_radius=5.0, seed=seed),
             TestCase.generate_random("Large 30-City Benchmark", num_cities=30, seed=seed),
-            TestCase.generate_random("Huge 50-City Benchmark", num_cities=50, seed=seed)
+            TestCase.generate_clustered("Clustered Large 30-City Benchmark", num_cities=30, num_clusters=5, cluster_radius=5.0, seed=seed),
+            TestCase.generate_random("Huge 50-City Benchmark", num_cities=50, seed=seed),
+            TestCase.generate_clustered("Clustered Huge 50-City Benchmark", num_cities=50, num_clusters=7, cluster_radius=7.0, seed=seed)
         ]
+
+
 
     # 2. Instantiate and register the 9 Solver variations
     comparator = Comparator()

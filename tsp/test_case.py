@@ -79,3 +79,53 @@ class TestCase:
             
         cities = [(random.uniform(0, width), random.uniform(0, height)) for _ in range(num_cities)]
         return cls(name, cities)
+
+    @classmethod
+    def generate_clustered(cls, name: str, num_cities: int, num_clusters: int = 3, cluster_radius: float = 8.0, width: float = 100.0, height: float = 100.0, seed: int = None) -> 'TestCase':
+        """
+        Generates a synthetic TestCase with cities placed in tight clusters that are far apart.
+
+        Args:
+            name (str): Name of the generated test case.
+            num_cities (int): Total number of cities in the TSP.
+            num_clusters (int, optional): Number of distinct clusters. Defaults to 3.
+            cluster_radius (float, optional): Maximum radius of a city from its cluster center. Defaults to 8.0.
+            width (float, optional): Maximum X coordinate for cluster centers. Defaults to 100.0.
+            height (float, optional): Maximum Y coordinate for cluster centers. Defaults to 100.0.
+            seed (int, optional): Seed for reproducibility. Defaults to None.
+
+        Returns:
+            TestCase: A new TestCase instance.
+        """
+        if seed is not None:
+            random.seed(seed)
+
+        if num_clusters <= 0:
+            num_clusters = 1
+
+        # Generate cluster centers, leaving padding so clusters don't get generated outside the canvas
+        padding = cluster_radius
+        centers = []
+        for _ in range(num_clusters):
+            cx = random.uniform(padding, width - padding)
+            cy = random.uniform(padding, height - padding)
+            centers.append((cx, cy))
+
+        # Distribute cities among clusters
+        cities_per_cluster = [num_cities // num_clusters] * num_clusters
+        for i in range(num_cities % num_clusters):
+            cities_per_cluster[i] += 1
+
+        cities = []
+        for cluster_idx, count in enumerate(cities_per_cluster):
+            cx, cy = centers[cluster_idx]
+            for _ in range(count):
+                # Generate a city in a random circular offset around the cluster center
+                r = random.uniform(0, cluster_radius)
+                theta = random.uniform(0, 2 * math.pi)
+                x = cx + r * math.cos(theta)
+                y = cy + r * math.sin(theta)
+                cities.append((x, y))
+
+        return cls(name, cities)
+
